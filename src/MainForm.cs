@@ -62,6 +62,7 @@ namespace BrokenDiskResizer
             page.Resize += delegate { DoLayout(); };
             page.Scroll += delegate { page.Invalidate(); };
             Controls.Add(page);
+            BrokenUi.GlassScroll.Attach(page, Theme.Bg, Theme.Accent);   // beyaz Windows çubuğu yerine koyu cam çubuk
 
             vs.SelectionChanged += delegate { UpdateSel(); platter.Invalidate(); strip.Invalidate(); };
 
@@ -355,6 +356,7 @@ namespace BrokenDiskResizer
             logBox.Multiline = true;
             logBox.ReadOnly = true;
             logBox.ScrollBars = ScrollBars.Vertical;
+            BrokenUi.GlassScroll.DarkNative(logBox);   // günlük kutusunun çubuğu koyu
             logBox.BorderStyle = BorderStyle.None;
             logBox.BackColor = Theme.Card;
             logBox.ForeColor = Theme.Sub;
