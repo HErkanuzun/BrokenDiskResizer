@@ -108,4 +108,6 @@ Harita, SMART geçmişi ve ayarlar `%AppData%\BrokenDiskResizer` klasöründe tu
 
 ![Broken Disk Resizer](docs/images/screenshot-en.png)
 
+**[Code signing policy](SECURITY.md#code-signing-policy)** · Free code signing by SignPath Foundation · Kod imzalama politikası
+
 MIT License.

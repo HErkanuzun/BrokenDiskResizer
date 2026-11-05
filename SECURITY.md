@@ -33,3 +33,25 @@ Release files are built from this repository by GitHub Actions. Each release inc
 ```powershell
 Get-FileHash .\BrokenDiskResizer-1.0-Setup.exe -Algorithm SHA256
 ```
+
+<a id="code-signing-policy"></a>
+## Code signing policy · Kod imzalama politikası
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+Ücretsiz kod imzalama hizmetini [SignPath.io](https://about.signpath.io) sağlar, sertifika [SignPath Foundation](https://signpath.org)'a aittir.
+
+| Role · Görev | Members · Kişiler |
+|---|---|
+| Committers and reviewers · Geliştirenler ve inceleyenler | [HErkanuzun](https://github.com/HErkanuzun) |
+| Approvers · İmzayı onaylayanlar | [HErkanuzun](https://github.com/HErkanuzun) |
+
+Only files built by GitHub Actions from this repository are signed: the program and its setup in each release. Every signing request is approved by hand. Changes from people outside the team are reviewed before they are merged.
+
+Sadece bu depodan GitHub Actions ile derlenen dosyalar imzalanır: her sürümdeki program ve kurulum paketi. Her imza isteği elle onaylanır. Ekip dışından gelen değişiklikler birleştirilmeden önce incelenir.
+
+### Privacy · Gizlilik
+
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
+Bu program, kullanıcı ya da kuran kişi özellikle istemedikçe hiçbir bilgiyi başka bir ağ sistemine göndermez.

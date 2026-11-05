@@ -24,10 +24,63 @@ jobs:
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
+      # Kod imzalama (SignPath Foundation). Sadece v* etiketinde ve depo ayarlarında
+      # SIGNPATH_* değerleri girildiyse çalışır; her istek SignPath'te elle onaylanır.
+      - name: Upload unsigned program
+        id: unsigned-program
+        if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_PROJECT_SLUG != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-program
+          path: bin/BrokenDiskResizer.exe
+
+      - name: Sign program
+        if: steps.unsigned-program.outcome == 'success'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.unsigned-program.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: bin
+
       - name: Package
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: ./scripts/package.ps1 -Version ("${{ github.ref_name }}".TrimStart('v'))
+
+      - name: Upload unsigned setup
+        id: unsigned-setup
+        if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_PROJECT_SLUG != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-setup
+          path: dist/BrokenDiskResizer-*-Setup.exe
+
+      - name: Sign setup
+        if: steps.unsigned-setup.outcome == 'success'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.unsigned-setup.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: dist
+
+      - name: Update checksums
+        if: steps.unsigned-setup.outcome == 'success'
+        shell: pwsh
+        run: |
+          # imzalanan kurulum dosyasının özeti değişti
+          $sums = foreach ($f in Get-ChildItem dist -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name) {
+            "$((Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($f.Name)"
+          }
+          [IO.File]::WriteAllLines((Join-Path $PWD 'dist/SHA256SUMS.txt'), [string[]]$sums)
+          $sums
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -39,6 +92,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          append_body: true
+          body: |
+            [Code signing policy](https://github.com/HErkanuzun/BrokenDiskResizer/blob/main/SECURITY.md#code-signing-policy)
           files: |
             dist/BrokenDiskResizer-*-Setup.exe
             dist/BrokenDiskResizer-*-Portable.zip
