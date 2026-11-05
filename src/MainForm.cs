@@ -387,16 +387,18 @@ namespace BrokenDiskResizer
             int W = page.ClientSize.Width;
             int pad = P(28), gap = P(36);
             bool two = W >= P(1000);
+            // geniş ekranda içerik en fazla P(1240) genişlikte ve ortada
+            int inner = Math.Min(P(1240), W - pad * 2), ox = (W - inner) / 2;
             int lw, rw, rx;
             if (two)
             {
-                int avail = W - pad * 2 - gap;
+                int avail = inner - gap;
                 lw = (int)(avail * 0.57f);
                 rw = avail - lw;
-                rx = pad + lw + gap;
+                rx = ox + lw + gap;
             }
-            else { lw = rw = W - pad * 2; rx = pad; }
-            int x = pad, oy = page.AutoScrollPosition.Y, y = pad + oy;
+            else { lw = rw = inner; rx = ox; }
+            int x = ox, oy = page.AutoScrollPosition.Y, y = pad + oy;
 
             // Başlık
             logo.SetBounds(x, y, P(48), P(48));
