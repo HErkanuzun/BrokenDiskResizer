@@ -22,6 +22,7 @@ Windows'ta bozuk ya da sorunlu bir şeyi bulup onunla yaşamanı sağlayan küç
 | [Broken Screen Resizer](https://github.com/HErkanuzun/BrokenScreenResizer) | Monitörün bozuk kısmını Windows'un dışında bırakır. |
 | **Broken Disk Resizer** | Hard diskin bozuk sektörlerini bulur, sadece sağlam kısımları bölümler. |
 | [Broken Space Finder](https://github.com/HErkanuzun/BrokenSpaceFinder) | Diski neyin doldurduğunu bulur ve güvenle temizler. |
+| [Broken Hub](https://github.com/HErkanuzun/BrokenHub) | Bütün Broken araçlarını tek yerden kurar, günceller ve açar. |
 
 ## Kurulum
 
@@ -103,7 +104,7 @@ Harita, SMART geçmişi ve ayarlar `%AppData%\BrokenDiskResizer` klasöründe tu
 
 **Build:** `build.bat` builds the exe with the .NET Framework compiler that ships with Windows. `paketle.bat` also builds the installer, portable ZIP and checksums (it installs Inno Setup with winget if needed).
 
-**The Broken family:** [Broken Screen Resizer](https://github.com/HErkanuzun/BrokenScreenResizer) (keeps a monitor's broken area out of use) · **Broken Disk Resizer** · [Broken Space Finder](https://github.com/HErkanuzun/BrokenSpaceFinder) (finds what's filling up your disk and cleans it safely).
+**The Broken family:** [Broken Screen Resizer](https://github.com/HErkanuzun/BrokenScreenResizer) (keeps a monitor's broken area out of use) · **Broken Disk Resizer** · [Broken Space Finder](https://github.com/HErkanuzun/BrokenSpaceFinder) (finds what's filling up your disk and cleans it safely) · [Broken Hub](https://github.com/HErkanuzun/BrokenHub) (installs, updates and opens all the Broken tools from one place).
 
 ![Broken Disk Resizer](docs/images/screenshot-en.png)
 
