@@ -11,6 +11,7 @@ namespace BrokenDiskResizer
     class MainForm : Form, ISurface
     {
         readonly TitleBar titleBar = new TitleBar();
+        readonly AppHeader header = new AppHeader();
         protected override void OnActivated(EventArgs e) { base.OnActivated(e); titleBar.Invalidate(); }
         public void PaintSurface(Graphics g, Rectangle r) { Glass.Backdrop(g, ClientSize, Point.Empty, r); }
         protected override void OnPaintBackground(PaintEventArgs e) { PaintSurface(e.Graphics, e.ClipRectangle); }
@@ -70,6 +71,9 @@ namespace BrokenDiskResizer
             Controls.Add(page);
             BrokenUi.GlassScroll.Attach(page, Theme.Bg, Theme.Accent);   // beyaz Windows çubuğu yerine koyu cam çubuk
             BrokenUi.GlassScroll.Under = Glass.PaintUnder;
+            header.Dock = DockStyle.Top;
+            Controls.Add(header);
+            titleBar.ShowTitle = false;
             titleBar.Dock = DockStyle.Top;
             Controls.Add(titleBar);
 
@@ -102,7 +106,7 @@ namespace BrokenDiskResizer
 
         protected override void WndProc(ref Message m)
         {
-            if (Frame.Handle(this, ref m, titleBar.Height)) return;
+            if (Frame.Handle(this, ref m, titleBar.Height + header.Height)) return;
             const int WM_DEVICECHANGE = 0x0219;
             if (m.Msg == WM_DEVICECHANGE)
             {
@@ -393,6 +397,20 @@ namespace BrokenDiskResizer
         }
 
         // ------------------------------------------------------------------ Yerleşim
+        // logo, ad ve dil/Hakkında düğmeleri sabit başlıkta (sayfayla birlikte oynamaz)
+        void SetupHeader()
+        {
+            header.Logo = logo.Image;
+            header.Title = lblTitle.Text;
+            header.Subtitle = lblSub.Text;
+            header.Font = Font;
+            logo.Visible = lblTitle.Visible = lblSub.Visible = false;
+            header.ClearActions();
+            header.AddAction(btnAbout, P(90));
+            header.AddAction(segLang, P(96));
+            header.Invalidate();
+        }
+
         void DoLayout()
         {
             if (status == null) return;
@@ -412,13 +430,7 @@ namespace BrokenDiskResizer
             else { lw = rw = inner; rx = ox; }
             int x = ox, oy = page.AutoScrollPosition.Y, y = pad + oy;
 
-            // Başlık
-            logo.SetBounds(x, y, P(48), P(48));
-            lblTitle.Location = new Point(x + P(62), y - P(1));
-            lblSub.Location = new Point(x + P(64), y + P(30));
-            btnAbout.SetBounds(x + lw - P(86), y + P(6), P(86), P(32));
-            segLang.SetBounds(x + lw - P(86) - P(104), y + P(6), P(96), P(32));
-            y += P(66);
+            if (segLang.Parent != header) SetupHeader();
 
             secDisk.Location = new Point(x, y);
             btnRefresh.SetBounds(x + lw - P(150), y - P(6), P(150), P(26));

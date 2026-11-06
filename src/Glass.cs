@@ -542,6 +542,92 @@ namespace BrokenDiskResizer
         }
     }
 
+    // ------------------------------------------------------------------ Uygulama başlığı
+    /// <summary>
+    /// Bütün Broken uygulamalarında aynı yerde duran başlık: solda logo, ad ve kısa açıklama; sağda düğmeler
+    /// (dil, Hakkında…). Pencerenin üstüne sabittir: sayfa değişince ya da içerik kayınca yerinden oynamaz.
+    /// Boş yerinden tutup pencere sürüklenebilir.
+    /// </summary>
+    class AppHeader : Ctl
+    {
+        const int WM_NCHITTEST = 0x84, HTTRANSPARENT = -1;
+        public Image Logo;
+        public string Title = "", Subtitle = "";
+        readonly List<Control> actions = new List<Control>();   // sağdan sola
+
+        public AppHeader() { Cursor = Cursors.Default; Height = Theme.P(68); }
+
+        int Pad { get { return Theme.P(22); } }
+
+        public void ClearActions()
+        {
+            foreach (var c in actions) if (c.Parent == this) Controls.Remove(c);
+            actions.Clear();
+        }
+
+        public void AddAction(Control c, int width)
+        {
+            c.Width = width;
+            Controls.Add(c);
+            actions.Add(c);
+            Arrange();
+        }
+
+        void Arrange()
+        {
+            int x = Width - Pad, h = Theme.P(32);
+            foreach (var c in actions)
+            {
+                if (!c.Visible) continue;
+                x -= c.Width;
+                c.SetBounds(x, (Height - h) / 2, c.Width, h);
+                x -= Theme.P(8);
+            }
+            Invalidate();
+        }
+
+        int ActionsLeft
+        {
+            get
+            {
+                int x = Width - Pad;
+                foreach (var c in actions) if (c.Visible) x = Math.Min(x, c.Left);
+                return x;
+            }
+        }
+
+        protected override void OnResize(EventArgs e) { base.OnResize(e); Arrange(); }
+        protected override void OnControlAdded(ControlEventArgs e) { base.OnControlAdded(e); e.Control.VisibleChanged += delegate { Arrange(); }; }
+
+        protected override void WndProc(ref Message m)
+        {
+            base.WndProc(ref m);
+            if (m.Msg == WM_NCHITTEST) m.Result = (IntPtr)HTTRANSPARENT;   // boş yer: pencereyi sürükle
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = Theme.Prep(e, this);
+            int ls = Theme.P(44), x = Pad;
+            if (Logo != null)
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.DrawImage(Logo, new Rectangle(x, (Height - ls) / 2, ls, ls));
+                x += ls + Theme.P(14);
+            }
+            int tw = Math.Max(Theme.P(40), ActionsLeft - Theme.P(16) - x);
+            using (var bold = new Font(Font.FontFamily, 14f, FontStyle.Bold))
+            using (var sub = new Font(Font.FontFamily, 9f))
+            {
+                float th = bold.GetHeight(g), sh = Subtitle == "" ? 0 : sub.GetHeight(g);
+                float y = (Height - th - sh) / 2f - Theme.P(1);
+                Theme.Draw(g, Title, bold, new RectangleF(x, y, tw, th + 2), Theme.Text, StringAlignment.Near, StringAlignment.Near, false);
+                if (Subtitle != "")
+                    Theme.Draw(g, Subtitle, sub, new RectangleF(x + Theme.P(1), y + th, tw, sh + 2), Theme.Sub, StringAlignment.Near, StringAlignment.Near, false);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ Metin kutusu (cam alan içinde)
     class TextField : Ctl
     {
