@@ -8,8 +8,14 @@ using System.Windows.Forms;
 
 namespace BrokenDiskResizer
 {
-    class MainForm : Form
+    class MainForm : Form, ISurface
     {
+        readonly TitleBar titleBar = new TitleBar();
+        protected override void OnActivated(EventArgs e) { base.OnActivated(e); titleBar.Invalidate(); }
+        public void PaintSurface(Graphics g, Rectangle r) { Glass.Backdrop(g, ClientSize, Point.Empty, r); }
+        protected override void OnPaintBackground(PaintEventArgs e) { PaintSurface(e.Graphics, e.ClipRectangle); }
+        protected override void OnResize(EventArgs e) { base.OnResize(e); Invalidate(true); }
+        protected override void OnDeactivate(EventArgs e) { base.OnDeactivate(e); titleBar.Invalidate(); }
         readonly Settings cfg;
         readonly ViewState vs = new ViewState();
         List<DiskInfo> disks = new List<DiskInfo>();
@@ -63,6 +69,9 @@ namespace BrokenDiskResizer
             page.Scroll += delegate { page.Invalidate(); };
             Controls.Add(page);
             BrokenUi.GlassScroll.Attach(page, Theme.Bg, Theme.Accent);   // beyaz Windows çubuğu yerine koyu cam çubuk
+            BrokenUi.GlassScroll.Under = Glass.PaintUnder;
+            titleBar.Dock = DockStyle.Top;
+            Controls.Add(titleBar);
 
             vs.SelectionChanged += delegate { UpdateSel(); platter.Invalidate(); strip.Invalidate(); };
 
@@ -93,6 +102,7 @@ namespace BrokenDiskResizer
 
         protected override void WndProc(ref Message m)
         {
+            if (Frame.Handle(this, ref m, titleBar.Height)) return;
             const int WM_DEVICECHANGE = 0x0219;
             if (m.Msg == WM_DEVICECHANGE)
             {
@@ -149,7 +159,7 @@ namespace BrokenDiskResizer
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            Theme.DarkTitle(this);
+            Frame.Apply(this);
         }
 
         static int P(float v) { return Theme.P(v); }
@@ -195,7 +205,7 @@ namespace BrokenDiskResizer
             var l = new Label();
             l.Text = L.Upper(text);
             l.ForeColor = Theme.Sub;
-            l.BackColor = Theme.Bg;
+            l.BackColor = Color.Transparent;
             l.Font = new Font(Font.FontFamily, 8f, FontStyle.Bold);
             l.AutoSize = true;
             page.Controls.Add(l);
@@ -207,7 +217,7 @@ namespace BrokenDiskResizer
             var l = new Label();
             l.Text = text;
             l.ForeColor = c;
-            l.BackColor = Theme.Bg;
+            l.BackColor = Color.Transparent;
             l.Font = new Font(Font.FontFamily, 8.5f);
             page.Controls.Add(l);
             return l;
@@ -234,7 +244,7 @@ namespace BrokenDiskResizer
 
             logo = new PictureBox();
             logo.SizeMode = PictureBoxSizeMode.Zoom;
-            logo.BackColor = Theme.Bg;
+            logo.BackColor = Color.Transparent;
             logo.Image = Theme.Logo();
             page.Controls.Add(logo);
 

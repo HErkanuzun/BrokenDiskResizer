@@ -215,7 +215,7 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             RenderCache();
             g.DrawImageUnscaled(cache, 0, 0);
             var c = Center;
@@ -362,7 +362,7 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             var bar = new RectangleF(BarL, 0, BarR - BarL, BarH);
             Theme.Fill(g, bar, Theme.P(6), Theme.Field);
             if (vs.Map != null)
@@ -513,10 +513,9 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             var r = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
-            Theme.Fill(g, r, Theme.P(10), Theme.Card);
-            Theme.Stroke(g, r, Theme.P(10), Theme.Border, 1);
+            Glass.Card(g, r, Theme.P(10), Color.Empty);
             if (Rows.Count == 0)
             {
                 Theme.Draw(g, Empty, Font, new RectangleF(Theme.P(14), 0, Width - Theme.P(28), Height), Theme.Sub, StringAlignment.Near, StringAlignment.Center, false);
@@ -575,7 +574,7 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             int cols = Width >= Theme.P(420) ? 3 : 2;
             float cw = Width / (float)cols;
             using (var stripes = ViewState.Stripes())
@@ -634,10 +633,9 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             var r = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
-            Theme.Fill(g, r, Theme.P(10), Theme.Card);
-            Theme.Stroke(g, r, Theme.P(10), Theme.Border, 1);
+            Glass.Card(g, r, Theme.P(10), Color.Empty);
             float pad = Theme.P(14);
             if (Loading || Info == null || !Info.Ok)
             {

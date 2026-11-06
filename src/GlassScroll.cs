@@ -14,6 +14,9 @@ namespace BrokenUi
     /// </summary>
     sealed class GlassScroll : Control
     {
+        /// <summary>Uygulama cam zemin kullanıyorsa çubuğun altını o çizer (yoksa düz renk).</summary>
+        public static Func<Graphics, Control, bool> Under;
+
         readonly ScrollableControl page;
         readonly Panel host;
         readonly Color bg, accent;
@@ -105,7 +108,11 @@ namespace BrokenUi
             int max = Max, v = Value;
             bool show = max > 0;
             if (Visible != show) { Visible = show; if (show) BringToFront(); }
-            if (v != lastV || max != lastMax) { lastV = v; lastMax = max; Invalidate(); }
+            if (v != lastV || max != lastMax)
+            {
+                if (Under != null && lastV >= 0 && v != lastV) page.Invalidate(true);   // zemin sabit: kayınca yeniden çiz
+                lastV = v; lastMax = max; Invalidate();
+            }
         }
 
         RectangleF ThumbRect()
@@ -121,7 +128,7 @@ namespace BrokenUi
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.Clear(bg);
+            if (Under == null || !Under(g, this)) g.Clear(bg);
             if (Max <= 0) return;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var r = ThumbRect();

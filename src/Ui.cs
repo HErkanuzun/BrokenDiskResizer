@@ -102,10 +102,24 @@ namespace BrokenDiskResizer
             }
         }
 
+        // Denetimin altını çizer: cam sayfadaysa zemin ve kartlar, değilse düz arka plan rengi
+        public static Graphics Prep(PaintEventArgs e, Control c)
+        {
+            var self = c as Ctl;
+            if (self != null && c.Parent is Ctl && !(c.Parent is ISurface)) self.PaintParentUnder(e.Graphics);   // ör. kart içindeki düğme
+            else if (!Glass.PaintUnder(e.Graphics, c)) e.Graphics.Clear(c.BackColor);
+            return Prep(e);
+        }
+
         public static Graphics Prep(PaintEventArgs e, Color bg)
         {
+            e.Graphics.Clear(bg);
+            return Prep(e);
+        }
+
+        static Graphics Prep(PaintEventArgs e)
+        {
             var g = e.Graphics;
-            g.Clear(bg);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -155,14 +169,28 @@ namespace BrokenDiskResizer
     }
 
     // ------------------------------------------------------------------ Ortak taban
-    // Titremeden kaydırılabilen panel (ana pencerenin duyarlı sayfası için)
-    class BufferedPanel : Panel
+    // Titremeden kaydırılabilen panel (ana pencerenin duyarlı sayfası için). Pencere cam zeminliyse zemini o çizer;
+    // üstüne eklenen düz yazı ve resimler saydam olur (koyu kutu görünmez).
+    class BufferedPanel : Panel, ISurface
     {
         public BufferedPanel()
         {
             DoubleBuffered = true;
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
         }
+
+        public void PaintSurface(Graphics g, Rectangle r)
+        {
+            var f = FindForm();
+            if (f is ISurface) Glass.Backdrop(g, f.ClientSize, f.PointToClient(PointToScreen(Point.Empty)), r);
+            else using (var b = new SolidBrush(BackColor)) g.FillRectangle(b, r);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e) { PaintSurface(e.Graphics, e.ClipRectangle); }
+        // zemin pencereye sabit: kayınca her şey yeniden çizilir (Windows'un kaydırması zemini de kaydırırdı)
+        protected override void OnScroll(ScrollEventArgs se) { base.OnScroll(se); Invalidate(true); }
+        protected override void OnMouseWheel(MouseEventArgs e) { base.OnMouseWheel(e); Invalidate(true); }
+        protected override void OnControlAdded(ControlEventArgs e) { base.OnControlAdded(e); Glass.SeeThrough(e.Control); }
     }
 
     class Ctl : Control
@@ -186,6 +214,17 @@ namespace BrokenDiskResizer
         protected override void OnTextChanged(EventArgs e) { Invalidate(); base.OnTextChanged(e); }
         protected Color C(Color c) { return Enabled ? c : Theme.Dim(c); }
 
+        // Üst denetim de özel çiziliyorsa (ör. cam kart), bu denetimin altında kalan kısmını çizer
+        internal void PaintParentUnder(Graphics g)
+        {
+            var p = Parent;
+            var st = g.Save();
+            g.TranslateTransform(-Left, -Top);
+            var area = new Rectangle(Left, Top, Width, Height);
+            using (var pe = new PaintEventArgs(g, area)) InvokePaint(p, pe);
+            g.Restore(st);
+        }
+
         // Ayar uygulanmışken kilitli (sisli) görünür
         bool fogged;
         public bool Fogged { get { return fogged; } set { if (fogged == value) return; fogged = value; Invalidate(); } }
@@ -206,33 +245,34 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             var r = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
+            float rad = Math.Min(Height / 2f, Theme.P(22));   // telefon uygulaması gibi yuvarlak uçlu
             Color fg = Theme.Text;
             switch (Kind)
             {
                 case BtnKind.Primary:
-                    Theme.Fill(g, r, Theme.P(8), C(pressed ? Theme.Mix(Theme.Accent, Color.Black, 0.15f) : hover ? Theme.AccentHover : Theme.Accent));
+                    Theme.Fill(g, r, rad, C(pressed ? Theme.Mix(Theme.Accent, Color.Black, 0.15f) : hover ? Theme.AccentHover : Theme.Accent));
                     fg = Theme.OnAccent;
                     break;
                 case BtnKind.Secondary:
-                    Theme.Fill(g, r, Theme.P(8), C(hover ? Theme.FieldHover : Theme.Field));
-                    Theme.Stroke(g, r, Theme.P(8), C(Theme.Border), 1);
+                    if (Enabled) Glass.Field(g, r, rad, hover);
+                    else Theme.Stroke(g, r, rad, Color.FromArgb(30, 255, 255, 255), 1);
                     break;
                 case BtnKind.Ghost:
-                    if (hover && Enabled) Theme.Fill(g, r, Theme.P(6), Theme.Field);
+                    if (hover && Enabled) Theme.Fill(g, r, rad, Color.FromArgb(22, 255, 255, 255));
                     fg = Theme.Sub;
                     break;
                 case BtnKind.DangerGhost:
-                    if (hover && Enabled) Theme.Fill(g, r, Theme.P(6), Theme.Mix(Theme.Danger, Theme.Bg, 0.85f));
-                    fg = Theme.Danger;
+                    if (hover && Enabled) Theme.Fill(g, r, rad, Color.FromArgb(40, Theme.Danger));
+                    fg = Color.FromArgb(255, 138, 142);
                     break;
             }
-            if (!Enabled) fg = Theme.Mix(fg, Kind == BtnKind.Primary ? Theme.Dim(Theme.Accent) : Theme.Bg, 0.45f);
+            if (!Enabled) fg = Color.FromArgb(110, fg);
             var f = Kind == BtnKind.Primary ? new Font(Font, FontStyle.Bold) : Font;
             Theme.Draw(g, Text, f, new RectangleF(0, 0, Width, Height), fg, StringAlignment.Center, StringAlignment.Center, false);
             if (f != Font) f.Dispose();
-            FogOver(g, Theme.P(8));
+            FogOver(g, rad);
         }
     }
 
@@ -283,22 +323,21 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             var r = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
-            Theme.Fill(g, r, Theme.P(9), Theme.Card);
-            Theme.Stroke(g, r, Theme.P(9), Theme.Border, 1);
+            Glass.Field(g, r, Height / 2f, false);
             for (int i = 0; i < items.Length; i++)
             {
                 var ir = Item(i);
                 Color fg = C(Theme.Sub);
                 if (i == selected)
                 {
-                    Theme.Fill(g, ir, Theme.P(7), C(Theme.Accent));
+                    Theme.Fill(g, ir, ir.Height / 2f, C(Theme.Accent));
                     fg = C(Theme.OnAccent);
                 }
                 else if (i == hot && Enabled)
                 {
-                    Theme.Fill(g, ir, Theme.P(7), Theme.Field);
+                    Theme.Fill(g, ir, ir.Height / 2f, Color.FromArgb(24, 255, 255, 255));
                     fg = Theme.Text;
                 }
                 var tr = new RectangleF(ir.X + Theme.P(6), ir.Y, ir.Width - Theme.P(12), ir.Height);
@@ -382,7 +421,7 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             float cy = Height / 2f, th = Theme.P(6);
             float t = (val - min) / (float)Math.Max(1, max - min);
             float x = TrackL + t * (TrackR - TrackL);
@@ -426,18 +465,17 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             float w = Theme.P(38), h = Theme.P(22), y = (Height - h) / 2f;
             var tr = new RectangleF(0.5f, y, w, h);
             if (on) Theme.Fill(g, tr, h / 2, C(hover ? Theme.AccentHover : Theme.Accent));
             else
             {
-                Theme.Fill(g, tr, h / 2, C(hover ? Theme.FieldHover : Theme.Field));
-                Theme.Stroke(g, tr, h / 2, C(Theme.Border), 1);
+                Theme.Fill(g, tr, h / 2, Color.FromArgb(hover ? 110 : 85, 255, 255, 255));
             }
             float k = h - Theme.P(6);
             float kx = on ? tr.Right - k - Theme.P(3) : tr.X + Theme.P(3);
-            using (var b = new SolidBrush(C(on ? Color.White : Theme.Sub))) g.FillEllipse(b, kx, y + Theme.P(3), k, k);
+            using (var b = new SolidBrush(C(on ? Color.White : Color.FromArgb(0xB0, 0xB7, 0xC3)))) g.FillEllipse(b, kx, y + Theme.P(3), k, k);
             Theme.Draw(g, Text, Font, new RectangleF(w + Theme.P(10), 0, Width - w - Theme.P(10), Height), C(Theme.Text),
                 StringAlignment.Near, StringAlignment.Center, false);
             if (Fogged) Theme.Fog(g, tr, h / 2);
@@ -484,7 +522,7 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             var r = new RectangleF(1, 1, Width - 2.5f, Height - 2.5f);
             Theme.Fill(g, r, Theme.P(12), sel ? Theme.Mix(Theme.Card, Theme.Accent, 0.08f) : hover && Enabled ? Theme.Field : Theme.Card);
             Theme.Stroke(g, r, Theme.P(12), C(sel ? Theme.Accent : Theme.Border), sel ? Theme.P(2) : 1);
@@ -540,11 +578,10 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             Color dot = Kind == StatusKind.Active ? Theme.Ok : Kind == StatusKind.Warn ? Theme.Warn : Theme.Sub;
             var r = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
-            Theme.Fill(g, r, Theme.P(10), Theme.Mix(Theme.Card, dot, 0.06f));
-            Theme.Stroke(g, r, Theme.P(10), Theme.Mix(Theme.Border, dot, 0.25f), 1);
+            Glass.Card(g, r, Theme.P(14), Kind == StatusKind.Idle ? Color.Empty : dot);
             float d = Theme.P(10), cy = Theme.P(13) + Font.Height / 2f;
             using (var b = new SolidBrush(Color.FromArgb(60, dot))) g.FillEllipse(b, Theme.P(16) - d / 2 - Theme.P(4), cy - d / 2 - Theme.P(4), d + Theme.P(8), d + Theme.P(8));
             using (var b = new SolidBrush(dot)) g.FillEllipse(b, Theme.P(16) - d / 2, cy - d / 2, d, d);

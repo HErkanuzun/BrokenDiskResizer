@@ -5,8 +5,15 @@ using System.Windows.Forms;
 namespace BrokenDiskResizer
 {
     // Koyu temalı onay penceresi. word verilirse kullanıcının o kelimeyi yazması gerekir.
-    class ConfirmDialog : Form
+    class ConfirmDialog : Form, ISurface
     {
+        readonly TitleBar titleBar = new TitleBar();
+        protected override void WndProc(ref Message m) { if (!Frame.Handle(this, ref m, titleBar.Height)) base.WndProc(ref m); }
+        protected override void OnActivated(EventArgs e) { base.OnActivated(e); titleBar.Invalidate(); }
+        protected override void OnDeactivate(EventArgs e) { base.OnDeactivate(e); titleBar.Invalidate(); }
+        public void PaintSurface(Graphics g, Rectangle r) { Glass.Backdrop(g, ClientSize, Point.Empty, r); }
+        protected override void OnPaintBackground(PaintEventArgs e) { PaintSurface(e.Graphics, e.ClipRectangle); }
+        protected override void OnControlAdded(ControlEventArgs e) { base.OnControlAdded(e); Glass.SeeThrough(e.Control); }
         readonly TextBox input;
         readonly FlatButton ok;
 
@@ -21,7 +28,11 @@ namespace BrokenDiskResizer
             ForeColor = Theme.Text;
             Font = new Font("Segoe UI", 9.5f);
             AutoScaleMode = AutoScaleMode.None;
-            int w = Theme.P(500), pad = Theme.P(24), y = pad;
+            int w = Theme.P(500), pad = Theme.P(24), y = titleBar.Height + Theme.P(4);
+            titleBar.MinMax = false;
+            titleBar.Dock = DockStyle.Top;
+            Controls.Add(titleBar);
+            DoubleBuffered = true;
 
             var t = new Label();
             t.Text = title;
@@ -76,7 +87,7 @@ namespace BrokenDiskResizer
             CancelButton = null;
         }
 
-        protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); Theme.DarkTitle(this); }
+        protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); Frame.Apply(this); }
 
         protected override void OnShown(EventArgs e)
         {
@@ -139,7 +150,7 @@ namespace BrokenDiskResizer
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            var g = Theme.Prep(e, BackColor);
+            var g = Theme.Prep(e, this);
             float y = 0, tx = Theme.P(44), d = Theme.P(28);
             using (var bold = new Font(Font, FontStyle.Bold))
                 for (int i = 0; i < Steps.Length; i++)
@@ -157,8 +168,15 @@ namespace BrokenDiskResizer
     }
 
     // ------------------------------------------------------------------ Koyu temalı küçük pencere tabanı
-    class DarkDialog : Form
+    class DarkDialog : Form, ISurface
     {
+        protected readonly TitleBar titleBar = new TitleBar();
+        protected override void WndProc(ref Message m) { if (!Frame.Handle(this, ref m, titleBar.Height)) base.WndProc(ref m); }
+        protected override void OnActivated(EventArgs e) { base.OnActivated(e); titleBar.Invalidate(); }
+        protected override void OnDeactivate(EventArgs e) { base.OnDeactivate(e); titleBar.Invalidate(); }
+        public void PaintSurface(Graphics g, Rectangle r) { Glass.Backdrop(g, ClientSize, Point.Empty, r); }
+        protected override void OnPaintBackground(PaintEventArgs e) { PaintSurface(e.Graphics, e.ClipRectangle); }
+        protected override void OnControlAdded(ControlEventArgs e) { base.OnControlAdded(e); Glass.SeeThrough(e.Control); }
         protected int W, Pad, Y;
 
         public DarkDialog(int width)
@@ -175,10 +193,14 @@ namespace BrokenDiskResizer
             Icon = Theme.AppIcon(32);
             W = Theme.P(width);
             Pad = Theme.P(26);
-            Y = Pad;
+            DoubleBuffered = true;
+            titleBar.MinMax = false;
+            titleBar.Dock = DockStyle.Top;
+            Controls.Add(titleBar);
+            Y = titleBar.Height + Theme.P(4);
         }
 
-        protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); Theme.DarkTitle(this); }
+        protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); Frame.Apply(this); }
 
         protected override bool ProcessDialogKey(Keys k)
         {
@@ -192,7 +214,8 @@ namespace BrokenDiskResizer
             l.Text = text;
             l.Font = f;
             l.ForeColor = c;
-            l.BackColor = Theme.Bg;
+            l.BackColor = Color.Transparent;
+            l.UseCompatibleTextRendering = true;
             using (var g = CreateGraphics())
                 l.SetBounds(x, Y, width, (int)Math.Ceiling(g.MeasureString(text, f, width).Height) + Theme.P(2));
             Controls.Add(l);
@@ -276,7 +299,7 @@ namespace BrokenDiskResizer
             link.LinkColor = Theme.Accent;
             link.ActiveLinkColor = Theme.AccentHover;
             link.VisitedLinkColor = Theme.Accent;
-            link.BackColor = Theme.Bg;
+            link.BackColor = Color.Transparent;
             link.AutoSize = true;
             link.Location = new Point(Pad, Y);
             link.LinkClicked += delegate { Open(AppInfo.Repo); };

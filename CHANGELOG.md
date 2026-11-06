@@ -2,6 +2,11 @@
 
 All notable changes to Broken Disk Resizer. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1] - 2026-11-06
+
+### Changed
+- New design, the same across the whole Broken family: a soft colour background, glass cards and buttons, and the window frame in the same style (no white Windows title bar; minimize / maximize / close are drawn by the app). Snapping, resizing from the edges, shadow and rounded corners still work. Dialogs use the same frame.
+
 ## [1.0] - 2026-10-23
 
 First release as an installable app.
